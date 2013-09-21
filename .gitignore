@@ -44,6 +44,7 @@ libs
 src
 build
 dist
+src
 
 # MAC OS X stuff
 .DS_Store

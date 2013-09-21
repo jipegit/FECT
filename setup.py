@@ -44,7 +44,11 @@ if len(sys.argv) == 1:
     sys.argv.append("py2exe")
 
 setup(
-	console=['FECT.py'],
+	console=[{
+        'script': 'FECT.py',
+        'icon_resources': [(0, 'FECT.ico')]
+        }],
+
 	options={'py2exe':{
 						'includes': ['pythoncom'],
 						'includes': ['pywintypes'],
@@ -56,7 +60,7 @@ setup(
 	},
 	zipfile = None,
 	name = 'Fast Evidence Collector Toolkit',
-	version = '0.1',
+	version = '0.2',
 	description = 'Fast Evidence Collector Toolkit',
 	author = '@Jipe_',
 	author_email = 'jipedevs_@_gmail_com',

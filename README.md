@@ -17,14 +17,21 @@ Just copy all files from github
 
 * pywin32 - http://sourceforge.net/projects/pywin32/files/
 * py2exe - http://www.py2exe.org/
+* Microsoft Visual C runtime DLL See: http://www.py2exe.org/index.cgi/Tutorial#Step5
 
 ## How to build
 
+Edit FECT.py and fill the autorunsc_exe_hex_encoded variable with a hex encoded version of the autorunsc binary.
+You can use the provided pyBinHexEncoder.py script to generate it.
+
+Then type:
 python setup py2exe
 
 ## How to run
 
 Just double click on it :)
+
+If there is not Microsoft Visual C runtime DLL on the suspicious computer, you must add the Microsoft.VC90.CRT directory (containing both Microsoft.VC90.CRT.manifest and msvcr90.dll) in the same directory as FECT.exe
 
 Default options passed to autorunsc are '-a -c -m -f' i.e. all entries with the respective hashes, except the one from Microsoft, output format is CSV.
 
@@ -34,6 +41,11 @@ E.g.: FECT.py -a \"-b -s -c -f\"
 Beware: double quotes are Mandatory. -c is mandatory as well.
 
 ## Changelog
+### 0.2
+ * search all .exe/.com/.dll/.scr in users' home directories
+ * a log file is now generated
+ * outputs of netstat -an and ipconfig /displaydns have been added to the log file
+
 ### 0.1
  * Initial Release
 
@@ -58,5 +70,4 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Microsoft autorunsc has his own EULA. By using FECT you DO ACCEPT it. 
-See. http://technet.microsoft.com/en-us/sysinternals/bb963902.aspx
+FECT.ico comes from http://openiconlibrary.sourceforge.net/ and has its own license
