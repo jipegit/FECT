@@ -44,6 +44,8 @@ def Main():
 	
 	parser = argparse.ArgumentParser(description='Use Microsoft autorunsc to identify binaries launched at windows startup and zip all the binaries to an archive')
 	parser.add_argument('-a', '--autorunsc_options', help='Wrapped options passed to autorunsc. E.g.: pyAutoruns.py -a \"-b -s -c -f\" Double quotes are Mandatory. -c is Mandatory as well.')
+	parser.add_argument('-k', '--key', help='The key to xor the zip archive with. Default if 0x42')
+
 	args = parser.parse_args()
 
 	print '\n[*] Fast Evidence Collector Toolkit v' + __version__ + ' by @Jipe_\n'
@@ -75,6 +77,10 @@ def Main():
 
 		zip_nb_files = 1
 		zip_nb_errors = 0
+		
+		xor_key = 0x42
+		if args.key:
+			xor_key = int(args.key)
 
 		homedirs_path = None
 		binaries_extension = ['exe', 'com', 'dll', 'scr']
@@ -101,39 +107,16 @@ def Main():
 		printandlog('[*] ipconfig /displaydns')
 		ipconfig_results = subprocess.check_output('ipconfig /displaydns', stderr=subprocess.STDOUT, universal_newlines=True)
 		printandlog(ipconfig_results)
-
-		# try:
-		# 	printandlog('[*] Creating the Microsoft.VC90.CRT directory')
-		# 	os.mkdir('Microsoft.VC90.CRT')
-
-		# 	with open('Microsoft.VC90.CRT\\Microsoft.VC90.CRT.manifest.xml', 'w') as f:
-		# 		printandlog('[*] Writing Microsoft.VC90.CRT.manifest.xml')
-		# 		f.write(Microsoft_VC90_CRT_manifest_xml_hex_encoded.decode('hex'))
-
-		# 	with open('Microsoft.VC90.CRT\\msvcm90.dll', 'wb') as f:
-		# 		printandlog('[*] Writing msvcm90.dll')
-		# 		f.write(msvcm90_dll_hex_encoded.decode('hex'))
-
-		# 	with open('Microsoft.VC90.CRT\\msvcp90.dll', 'wb') as f:
-		# 		printandlog('[*] Writing msvcp90.dll')
-		# 		f.write(msvcp90_dll_hex_encoded.decode('hex'))
-
-		# 	with open('Microsoft.VC90.CRT\\msvcr90.dll', 'wb') as f:
-		# 		printandlog('[*] Writing msvcr90.dll')
-		# 		f.write(msvcr90_dll_hex_encoded.decode('hex'))
-
-		# except:
-		# 	printandlog('[!] Error writing one of the required dll')
 		
 		try:
-			with open('tmp_autorunsc.exe', 'wb') as f:
-				printandlog('[*] Writing tmp_autorunsc.exe')
+			with open('autorunsc.exe', 'wb') as f:
+				printandlog('[*] Writing autorunsc.exe')
 				f.write(autorunsc_exe_hex_encoded.decode('hex'))
 		except:
 			printandlog('[!] Error writing tmp_autorunsc.exe binary')
 
 		try:
-			autorunsc_csv_results = subprocess.check_output('tmp_autorunsc.exe ' + autorunsc_options + ' -\"accepteula\"', stderr=subprocess.STDOUT, universal_newlines=True)
+			autorunsc_csv_results = subprocess.check_output('autorunsc.exe ' + autorunsc_options + ' -\"accepteula\"', stderr=subprocess.STDOUT, universal_newlines=True)
 			autorunsc_csv_results = autorunsc_csv_results.decode('utf-16').encode('utf-8')
 			
 			file_paths = path_regex.findall(autorunsc_csv_results)
@@ -168,9 +151,11 @@ def Main():
 		except subprocess.CalledProcessError as e:
 			printandlog('[!] Error executing autorunsc: ' + str(e.output))
 
-		try:
+		ZipName = 'FECT_logs_and_binaries_' + env_var_hostname + '_' + debug_date + '.zip'
+		XoredZipName = 'FECT_logs_and_binaries_' + env_var_hostname + '_' + debug_date + '.zip.xor'
 
-			with zipfile.ZipFile('FECT_logs_and_binaries_' + env_var_hostname + '_' + debug_date + '.zip', 'w') as zf:
+		try:
+			with zipfile.ZipFile(ZipName, 'w') as zf:
 				zf.write('autorunsc_csv_results.csv')
 				for file_path in file_paths:
 					printandlog('[+] [' + str(zip_nb_files) + '/' + nb_paths + '] Adding ' + file_path)
@@ -222,13 +207,8 @@ def Main():
 		try:
 			printandlog('[*] Removing the temporary files')
 
-			os.remove('tmp_autorunsc.exe')			
+			os.remove('autorunsc.exe')			
 			os.remove('autorunsc_csv_results.csv')
-			# os.remove('Microsoft.VC90.CRT\\Microsoft.VC90.CRT.manifest.xml')			
-			# os.remove('Microsoft.VC90.CRT\\msvcm90.dll')			
-			# os.remove('Microsoft.VC90.CRT\\msvcp90.dll')			
-			# os.remove('Microsoft.VC90.CRT\\msvcr90.dll')			
-			# os.rmdir('Microsoft.VC90.CRT')
 
 		except:
 			printandlog('[!] Error removing the temporary files. You have to do the cleaning by yourself.')
@@ -236,18 +216,50 @@ def Main():
 		if debug_filehandle:
 			debug_filehandle.close()
 		try:
-			with zipfile.ZipFile('FECT_logs_and_binaries_' + env_var_hostname + '_' + debug_date + '.zip', 'a') as zf:
+			with zipfile.ZipFile(ZipName, 'a') as zf:
 				zf.write(debug_filename)
 		except IOError as e:
-			print '[!] Zip Error({0}): {1}'.format(e.errno, e.strerror)
+			print '[!] Ziping Error({0}): {1}'.format(e.errno, e.strerror)
 		except:
-			print '[!] Zip Unexpected error: ' + str(sys.exc_info()[0]) + ' ' + str(sys.exc_info()[1])
+			print '[!] Ziping Unexpected error: ' + str(sys.exc_info()[0]) + ' ' + str(sys.exc_info()[1])
 	
+		print '[*] Xoring the zip archive to protect it from AV'
+		
+		bytes_ = None
+
 		try:
-			print '[*] Removing the debug log file'
-			os.remove(debug_filename)
+			zipin = open(ZipName, 'rb')
+			zipout = open(XoredZipName, 'wb')
+			
+			block = 10000000
+			
+			bytes_ = zipin.read(block)
+			while bytes_ != "":
+				print '[*] Reading and Xoring... ' + str(len(bytes_)) + ' bytes'
+				bytearray_ = bytearray(bytes_)
+				bytearray_len = len(bytearray_)
+
+				for i in range(bytearray_len):
+					bytearray_[i] ^= xor_key
+				
+				zipout.write(bytearray_)
+
+				bytes_ = zipin.read(block)
+
+		except IOError as e:
+			print '[!] Xoring Error({0}): {1}'.format(e.errno, e.strerror)
 		except:
-			print '[!] Error removing the debug log file. You have to do the cleaning by yourself.'
+			print '[!] Xoring Unexpected error: ' + str(sys.exc_info()[0]) + ' ' + str(sys.exc_info()[1])
+		finally:
+			zipin.close()
+			zipout.close()
+
+		try:
+			print '[*] Removing the debug log file and the original zip file'
+			os.remove(ZipName)
+			os.remove(debug_filename)			
+		except:
+			print '[!] Error removing a file. You have to do the cleaning by yourself.'
 
 	else:
 		print '[!] Error, the script has to be run with Administrator privileges (Right click on me -> Run as an Administrator)'

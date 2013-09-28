@@ -1,9 +1,13 @@
 # Fast Evidence Collector Toolkit
 
-Fast Evidence Collector Toolkit is an incident response toolkit to collect evidences on a suspicious windows computer.
+Fast Evidence Collector Toolkit is an light incident response toolkit to collect evidences on a suspicious Windows computer.
+Basically it is intended to be used by non-tech savvy people working with a journeyman Incident Handler.
 
-It uses Microsoft autorunsc to identify binaries launched at windows startup and zip all the binaries to an archive.
-autorunsc.exe v11.70 (6677b6017e5d470cf99ef60d1802bccc) is hex encoded and embedded in FECT.py.
+It uses Microsoft autorunsc to identify binaries launched at windows startup and zip all the binaries to a zip archive.
+It looks for all .exe/.com/.dll/.scr in users' home directories and add them to the zipball.
+It also logs the output of some interesting network commands.
+
+Finally the zip archive is xored to evade from AV.
 
 ## Author
 
@@ -42,9 +46,10 @@ Beware: double quotes are Mandatory. -c is mandatory as well.
 
 ## Changelog
 ### 0.2
- * search all .exe/.com/.dll/.scr in users' home directories
- * a log file is now generated
- * outputs of netstat -an and ipconfig /displaydns have been added to the log file
+ * Search all .exe/.com/.dll/.scr in users' home directories
+ * A log file is now generated
+ * The outputs of 'netstat -an' and 'ipconfig /displaydns' have been added to the log file
+ * The zip file is XORed to evade from AV doing their job
 
 ### 0.1
  * Initial Release

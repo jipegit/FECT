@@ -16,7 +16,7 @@ __version__ = '0.1'
 def Main():
 	''' main '''
 
-	parser = argparse.ArgumentParser(description='Create a a hex encoded file of a binary')
+	parser = argparse.ArgumentParser(description='Create a hex encoded file from a binary file')
 	parser.add_argument('-i', '--input', help='Input filename')
 	parser.add_argument('-o', '--output', help='Output filename')
 	args = parser.parse_args()
