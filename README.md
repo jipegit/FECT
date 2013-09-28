@@ -1,6 +1,6 @@
 # Fast Evidence Collector Toolkit
 
-Fast Evidence Collector Toolkit is an light incident response toolkit to collect evidences on a suspicious Windows computer.
+Fast Evidence Collector Toolkit is a light incident response toolkit to collect evidences on a suspicious Windows computer.
 Basically it is intended to be used by non-tech savvy people working with a journeyman Incident Handler.
 
 It uses Microsoft autorunsc to identify binaries launched at windows startup and zip all the binaries to a zip archive.
