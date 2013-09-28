@@ -33,7 +33,7 @@ python setup py2exe
 
 ## How to run
 
-Just double click on it :)
+Just double click on it :) 
 
 If there is not Microsoft Visual C runtime DLL on the suspicious computer, you must add the Microsoft.VC90.CRT directory (containing both Microsoft.VC90.CRT.manifest and msvcr90.dll) in the same directory as FECT.exe
 
@@ -43,6 +43,8 @@ FECT also acts as a wrapper for autorunsc. You can pass any specific options you
 E.g.: FECT.py -a \"-b -s -c -f\"
 
 Beware: double quotes are Mandatory. -c is mandatory as well.
+
+Finally use pyXoredBinEn-Decoder.py to unXor the zipball.
 
 ## Changelog
 ### 0.2
