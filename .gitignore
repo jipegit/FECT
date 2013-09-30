@@ -41,7 +41,6 @@ nosetests.xml
 # folders
 env-*
 libs
-src
 build
 dist
 

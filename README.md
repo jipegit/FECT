@@ -47,17 +47,20 @@ Beware: double quotes are Mandatory. -c is mandatory as well.
 Finally use pyXoredBinEn-Decoder.py to unXor the zipball.
 
 ## Changelog
+### 0.3
+ * Circumvents the Wow effet. See. http://cert.at/static/downloads/papers/cert.at-the_wow_effect.pdf
+ * Hashes all binaries and add all the md5s to the log file
+ * deduplicates redundant binaries based on their md5
+ * Parses both \Documents and Settings\ and \Users\
+
 ### 0.2
- * Search all .exe/.com/.dll/.scr in users' home directories
+ * Searches all .exe/.com/.dll/.scr in users' home directories
  * A log file is now generated
  * The outputs of 'netstat -an' and 'ipconfig /displaydns' have been added to the log file
- * The zip file is XORed to evade from AV doing their job
+ * The zip file is XORed to evade from AV doing their job. The default key is 0x42
 
 ### 0.1
  * Initial Release
-
-## TODO
- * n/a
 
 ## License
 

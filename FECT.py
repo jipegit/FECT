@@ -20,28 +20,46 @@ import pythoncom
 import pywintypes
 import win32api
 from win32com.shell import shell
+import platform
+import hashlib
+from functools import partial
 
-__version__ = '0.2'
+__version__ = '0.3'
 
 # Put your hex-encoded autorunsc.exe here
-autorunsc_exe_hex_encoded = ''
+g_autorunsc_exe_hex_encoded = ''
 
-debug_filehandle = None
+g_debug_filehandle = None
+g_md5s = []
 
 def printandlog(logstr):
 	''' print and log if the log handle is available '''
 	
-	global debug_filehandle
+	global g_debug_filehandle
 
 	print logstr
-	if debug_filehandle is not None:
-		debug_filehandle.write(logstr + '\r\n')
+	if g_debug_filehandle is not None:
+		g_debug_filehandle.write(logstr + '\r\n')
+
+def chunkedmd5(filepath):
+	""" Return the md5 hash of a big file """
+	
+	md5 = hashlib.md5()
+	try:
+		with open(filepath, 'rb') as f:
+			for chunk in iter(partial(f.read, 1048576), ''):
+				md5.update(chunk)
+			return md5.hexdigest()
+	except:
+		printandlog('[!] Cannot hash ' + filepath)
+		return ''
 
 def Main():
 	''' main '''
 	
-	global debug_filehandle
-	
+	global g_debug_filehandle
+	global g_md5s
+
 	parser = argparse.ArgumentParser(description='Use Microsoft autorunsc to identify binaries launched at windows startup and zip all the binaries to an archive')
 	parser.add_argument('-a', '--autorunsc_options', help='Wrapped options passed to autorunsc. E.g.: pyAutoruns.py -a \"-b -s -c -f\" Double quotes are Mandatory. -c is Mandatory as well.')
 	parser.add_argument('-k', '--key', help='The key to xor the zip archive with. Default if 0x42')
@@ -50,7 +68,7 @@ def Main():
 
 	print '\n[*] Fast Evidence Collector Toolkit v' + __version__ + ' by @Jipe_\n'
 
-	if autorunsc_exe_hex_encoded == '':
+	if g_autorunsc_exe_hex_encoded == '':
 		print '[!] Error autorunsc hex-encoded binary is missing'
 		raise
 
@@ -68,12 +86,15 @@ def Main():
 		systemroot_regex = re.compile('%SystemRoot%', flags=re.IGNORECASE)
 		windir_regex = re.compile('%windir%', flags=re.IGNORECASE)
 		programfiles_regex = re.compile('%ProgramFiles%', flags=re.IGNORECASE)
+		system32_regex = re.compile('system32', flags=re.IGNORECASE)
 
 		env_var_windir = os.getenv('windir')
 		env_var_programfiles = os.getenv('ProgramFiles')
 		env_var_systemroot = os.getenv('SystemRoot')
 		env_var_systemdrive = os.getenv('SystemDrive')
 		env_var_hostname = os.getenv('COMPUTERNAME')
+
+		env_machine = platform.machine()
 
 		zip_nb_files = 1
 		zip_nb_errors = 0
@@ -82,7 +103,7 @@ def Main():
 		if args.key:
 			xor_key = int(args.key)
 
-		homedirs_path = None
+		homedirs_path = []
 		binaries_extension = ['exe', 'com', 'dll', 'scr']
 
 		if env_var_hostname is None:
@@ -93,10 +114,10 @@ def Main():
 
 		try:
 			print '[*] Creating the debug log file: ' + debug_filename
-			debug_filehandle = open(debug_filename, 'w')
+			g_debug_filehandle = open(debug_filename, 'w')
 		except:
 			print '[!] Error creating the debug file: ' + debug_filename 
-			debug_filehandle = None
+			g_debug_filehandle = None
 
 		printandlog('[*] FECT Log\r\n[*] Hostname: ' + env_var_hostname + '\r\n[*] Date: ' + debug_date + '\r\n[*] Autorunsc\'s options: ' + autorunsc_options)
 
@@ -111,7 +132,7 @@ def Main():
 		try:
 			with open('autorunsc.exe', 'wb') as f:
 				printandlog('[*] Writing autorunsc.exe')
-				f.write(autorunsc_exe_hex_encoded.decode('hex'))
+				f.write(g_autorunsc_exe_hex_encoded.decode('hex'))
 		except:
 			printandlog('[!] Error writing tmp_autorunsc.exe binary')
 
@@ -134,8 +155,17 @@ def Main():
 				if match:
 					file_paths_with_var_replaced.append(re.sub(windir_regex, env_var_systemroot, file_path_with_var))
 			
-			file_paths_with_var_replaced
 			file_paths = file_paths + file_paths_with_var_replaced
+			
+			if env_machine == "AMD64":			# Don't be fooled by the WoW Effect... http://cert.at/static/downloads/papers/cert.at-the_wow_effect.pdf
+				printandlog('[*] I\'m running on a 64bits OS. I must replace the System32 path to circumvent the WoW effet')
+				wow_file_paths = []
+				for file_path in file_paths:
+					match = system32_regex.search(file_path)
+					if match:
+						wow_file_paths.append(re.sub(system32_regex, 'Sysnative', file_path))					# http://msdn.microsoft.com/en-us/library/windows/desktop/aa384187(v=vs.85).aspx
+				file_paths = wow_file_paths
+
 			nb_paths = str(len(file_paths))
 
 			printandlog('[*] ' + nb_paths + ' binaries paths found')
@@ -158,70 +188,81 @@ def Main():
 			with zipfile.ZipFile(ZipName, 'w') as zf:
 				zf.write('autorunsc_csv_results.csv')
 				for file_path in file_paths:
-					printandlog('[+] [' + str(zip_nb_files) + '/' + nb_paths + '] Adding ' + file_path)
-					try:
-						zf.write(file_path)
-						zip_nb_files += 1
-					except (IOError, WindowsError) as e:
-						printandlog('[!] I/O Error adding ' + file_path + ': ' + e.strerror)
-						zip_nb_errors += 1
-						pass
-					except:
-						printandlog('[!] Error adding ' + file_path + ': ' + str(sys.exc_info()[0]))
-						zip_nb_errors += 1
-						pass
+					c_md5 = chunkedmd5(file_path)
+					if c_md5 != '':
+						if c_md5 not in g_md5s:
+							g_md5s.append(c_md5)
+							printandlog('[+] [' + str(zip_nb_files) + '/' + nb_paths + '] Adding ' + file_path + ' ' + c_md5)
+							try:
+								zf.write(file_path)
+								zip_nb_files += 1
+							except (IOError, WindowsError) as e:
+								printandlog('[!] I/O Error adding ' + file_path + ': ' + e.strerror)
+								zip_nb_errors += 1
+								pass
+							except:
+								printandlog('[!] Error adding ' + file_path + ': ' + str(sys.exc_info()[0]) + str(sys.exc_info()[1]) + str(sys.exc_info()[2]))
+								zip_nb_errors += 1
+								pass
+						else:
+							printandlog('[+] ' + file_path + '\'s md5 (' + c_md5 + ') already added' )
 
 				if os.path.isdir(os.path.join(env_var_systemdrive, os.sep, 'Documents and Settings')):
-					homedirs_path = os.path.join(env_var_systemdrive, os.sep, 'Documents and Settings')
-				elif os.path.isdir(os.path.join(env_var_systemdrive, os.sep, 'Users')):
-					homedirs_path = os.path.join(env_var_systemdrive, os.sep, 'Users')
-				else:
-					printandlog('[!] Error determining users\' directory')
-
-				if homedirs_path:
-					printandlog('[*] Users\' homes path: ' + homedirs_path)
-					for Root, Dirs, Files in os.walk(homedirs_path):
+					homedirs_path.append(os.path.join(env_var_systemdrive, os.sep, 'Documents and Settings'))
+				if os.path.isdir(os.path.join(env_var_systemdrive, os.sep, 'Users')):
+					homedirs_path.append(os.path.join(env_var_systemdrive, os.sep, 'Users'))
+				
+				for homedir_path in homedirs_path:
+					printandlog('[*] Users\' homes path: ' + homedir_path)
+					for Root, Dirs, Files in os.walk(homedir_path):
 						for File in Files:
 							if File[-3:] in binaries_extension:
 								file_path = os.path.join(Root, File)
-								try:
-									printandlog('[+] Adding ' + file_path)
-									zf.write(file_path)
-									zip_nb_files += 1
-								except (IOError, WindowsError) as e:
-									printandlog('[!] I/O Error adding ' + file_path + ': ' + e.strerror)
-									zip_nb_errors += 1
-									pass
-								except:
-									printandlog('[!] Error adding ' + file_path + ': ' + str(sys.exc_info()[0]))
-									zip_nb_errors += 1
-									pass
+								c_md5 = chunkedmd5(file_path)
+								if c_md5 != '':
+									if c_md5 not in g_md5s:
+										g_md5s.append(c_md5)
+										printandlog('[+] Adding ' + file_path + ' ' + c_md5)
+										try:
+											zf.write(file_path)
+											zip_nb_files += 1
+										except (IOError, WindowsError) as e:
+											printandlog('[!] I/O Error adding ' + file_path + ': ' + e.strerror)
+											zip_nb_errors += 1
+											pass
+										except:
+											printandlog('[!] Error adding ' + file_path + ': ' + str(sys.exc_info()[0]) + ' ' + str(sys.exc_info()[1]) + ' ' + str(sys.exc_info()[2]))
+											zip_nb_errors += 1
+											pass
+									else:
+										printandlog('[+] ' + file_path + '\'s md5 (' + c_md5 + ') already added' )
 
 				printandlog('\n[+] ' + str(zip_nb_files) + ' files added to the zip archive with ' + str(zip_nb_errors) + ' errors')
 
 		except IOError as e:
 			printandlog('[!] Zip Error({0}): {1}'.format(e.errno, e.strerror))
 		except:
-			printandlog('[!] Zip Unexpected error: ' + str(sys.exc_info()[0]) + ' ' + str(sys.exc_info()[1]) )
+			printandlog('[!] Zip Unexpected error: ' + str(sys.exc_info()[0]) + ' ' + str(sys.exc_info()[1]) + ' ' + str(sys.exc_info()[2]))
 
+		for md5_ in g_md5s:
+			printandlog(md5_)
 		try:
 			printandlog('[*] Removing the temporary files')
-
 			os.remove('autorunsc.exe')			
 			os.remove('autorunsc_csv_results.csv')
 
 		except:
 			printandlog('[!] Error removing the temporary files. You have to do the cleaning by yourself.')
 
-		if debug_filehandle:
-			debug_filehandle.close()
+		if g_debug_filehandle:
+			g_debug_filehandle.close()
 		try:
 			with zipfile.ZipFile(ZipName, 'a') as zf:
 				zf.write(debug_filename)
 		except IOError as e:
 			print '[!] Ziping Error({0}): {1}'.format(e.errno, e.strerror)
 		except:
-			print '[!] Ziping Unexpected error: ' + str(sys.exc_info()[0]) + ' ' + str(sys.exc_info()[1])
+			print '[!] Ziping Unexpected error: ' + str(sys.exc_info()[0]) + ' ' + str(sys.exc_info()[1] + ' ' + str(sys.exc_info()[2]))
 	
 		print '[*] Xoring the zip archive to protect it from AV'
 		
@@ -249,7 +290,7 @@ def Main():
 		except IOError as e:
 			print '[!] Xoring Error({0}): {1}'.format(e.errno, e.strerror)
 		except:
-			print '[!] Xoring Unexpected error: ' + str(sys.exc_info()[0]) + ' ' + str(sys.exc_info()[1])
+			print '[!] Xoring Unexpected error: ' + str(sys.exc_info()[0]) + ' ' + str(sys.exc_info()[1] + ' ' + str(sys.exc_info()[2]))
 		finally:
 			zipin.close()
 			zipout.close()
