@@ -24,7 +24,7 @@ import platform
 import hashlib
 from functools import partial
 
-__version__ = '0.3'
+__version__ = '0.3.1'
 
 # Put your hex-encoded autorunsc.exe here
 g_autorunsc_exe_hex_encoded = ''
@@ -185,7 +185,7 @@ def Main():
 		XoredZipName = 'FECT_logs_and_binaries_' + env_var_hostname + '_' + debug_date + '.zip.xor'
 
 		try:
-			with zipfile.ZipFile(ZipName, 'w') as zf:
+			with zipfile.ZipFile(ZipName, 'w', allowZip64=True) as zf:
 				zf.write('autorunsc_csv_results.csv')
 				for file_path in file_paths:
 					c_md5 = chunkedmd5(file_path)
@@ -257,7 +257,7 @@ def Main():
 		if g_debug_filehandle:
 			g_debug_filehandle.close()
 		try:
-			with zipfile.ZipFile(ZipName, 'a') as zf:
+			with zipfile.ZipFile(ZipName, 'a', allowZip64=True) as zf:
 				zf.write(debug_filename)
 		except IOError as e:
 			print '[!] Ziping Error({0}): {1}'.format(e.errno, e.strerror)
@@ -280,7 +280,7 @@ def Main():
 				bytearray_ = bytearray(bytes_)
 				bytearray_len = len(bytearray_)
 
-				for i in range(bytearray_len):
+				for i in xrange(bytearray_len):
 					bytearray_[i] ^= xor_key
 				
 				zipout.write(bytearray_)

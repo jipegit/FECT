@@ -47,6 +47,10 @@ Beware: double quotes are Mandatory. -c is mandatory as well.
 Finally use pyXoredBinEn-Decoder.py to unXor the zipball.
 
 ## Changelog
+### 0.3.1
+ * Handles zip archive > 2Gb 
+ * memory footprint reduced
+
 ### 0.3
  * Circumvents the Wow effet. See. http://cert.at/static/downloads/papers/cert.at-the_wow_effect.pdf
  * Hashes all binaries and add all the md5s to the log file
