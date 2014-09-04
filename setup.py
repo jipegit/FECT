@@ -60,7 +60,7 @@ setup(
 	},
 	zipfile = None,
 	name = 'Fast Evidence Collector Toolkit',
-	version = '0.2',
+	version = '0.3.3',
 	description = 'Fast Evidence Collector Toolkit',
 	author = '@Jipe_',
 	author_email = 'jipedevs_@_gmail_com',
