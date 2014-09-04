@@ -47,6 +47,9 @@ Beware: double quotes are Mandatory. -c is mandatory as well.
 Finally use pyXoredBinEn-Decoder.py to unXor the zipball.
 
 ## Changelog
+### 0.3.2
+ * Autorunsc now scans all users' registry files
+
 ### 0.3.1
  * Handles zip archive > 2Gb 
  * memory footprint reduced

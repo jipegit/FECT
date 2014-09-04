@@ -24,7 +24,7 @@ import platform
 import hashlib
 from functools import partial
 
-__version__ = '0.3.1'
+__version__ = '0.3.2'
 
 # Put your hex-encoded autorunsc.exe here
 g_autorunsc_exe_hex_encoded = ''
@@ -75,7 +75,7 @@ def Main():
 	if shell.IsUserAnAdmin():
 		print '[*] That\'s fine, I\'m running with Administrator privileges'
 
-		autorunsc_options = '-a -c -m -f'	#All entries with the respective hashes, except the one from Microsoft, with a CSV output 
+		autorunsc_options = '-a -c -m -f *'	#All entries with the respective hashes, except the one from Microsoft, with a CSV output 
 
 		if args.autorunsc_options:
 			autorunsc_options = args.autorunsc_options
