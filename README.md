@@ -13,6 +13,10 @@ Finally the zip archive is xored to evade from AV.
 
 Jean-Philippe Teissier - @Jipe_ 
 
+## Development status
+
+*FECT is no longer maintained*
+
 ## How to install
 
 Just copy all files from github
