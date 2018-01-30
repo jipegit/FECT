@@ -15,7 +15,7 @@ Jean-Philippe Teissier - @Jipe_
 
 ## Development status
 
-*FECT is no longer maintained*
+**FECT is no longer maintained**
 
 ## How to install
 
