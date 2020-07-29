@@ -1,5 +1,7 @@
 # Fast Evidence Collector Toolkit
 
+![Maintenance](https://img.shields.io/badge/Maintained%3F-no-red.svg)
+![No Maintenance Intended](http://unmaintained.tech/badge.svg)
 Fast Evidence Collector Toolkit is a light incident response toolkit to collect evidences on a suspicious Windows computer.
 Basically it is intended to be used by non-tech savvy people working with a journeyman Incident Handler.
 
